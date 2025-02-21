@@ -1,7 +1,7 @@
 Package: moonboot
 Title: m-Out-of-n Bootstrap Functions
-Version: 0.9.1
-Date: 2024-12-09
+Version: 1.0.1
+Date: 2025-02-21
 Authors@R: 
     c(person("Christoph", "Dalitz", email="christoph.dalitz@hs-niederrhein.de", role = c("aut", "cre")),person("Felix", "Lögler", role = c("aut")))
 Description: 
@@ -14,13 +14,13 @@ Description:
 License: BSD 2-clause License + file LICENSE
 Encoding: UTF-8
 RoxygenNote: 7.3.2
-Imports: methods (>= 4.1.2), stats (>= 4.1.2)
-Suggests: testthat (>= 3.0.0)
+Imports: methods (>= 3.5.0), stats (>= 3.5.0)
+Suggests: testthat (>= 2.3.0)
 Config/testthat/edition: 3
 NeedsCompilation: no
-Packaged: 2024-12-09 11:59:34 UTC; dalitz
+Packaged: 2025-02-21 13:44:16 UTC; dalitz
 Author: Christoph Dalitz [aut, cre],
   Felix Lögler [aut]
 Maintainer: Christoph Dalitz <christoph.dalitz@hs-niederrhein.de>
 Repository: CRAN
-Date/Publication: 2024-12-10 21:30:02 UTC
+Date/Publication: 2025-02-21 14:00:01 UTC

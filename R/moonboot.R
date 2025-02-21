@@ -5,11 +5,11 @@
 #' The subsample size m can either be chosen directly or estimated with [estimate.m()].
 #'
 #' @param data The data to be bootstrapped. If it is multidimensional, each row is considered as one observation passed to the \code{statistic}.
-#' @param statistic A function, returing the statistic of interest. It must take two arguments. The first argument passed will be the original data, the second
+#' @param statistic A function returing the statistic of interest. It must take two arguments. The first argument passed will be the original data, the second
 #' will be a vector of indicies. Any further arguments can be passed through the \code{...} argument.
-#' @param R The amount of bootstrap replicates.
-#' @param m The subsampling size, if not provided \code{sqrt(n)} is used.
-#' @param replace Whether sampling should be done with replacement or without replacement (the default)
+#' @param R The number of bootstrap replicates.
+#' @param m The subsampling size.
+#' @param replace Whether sampling should be done with replacement or without replacement (the default).
 #' @param ... Additional parameters to be passed to the \code{statistic}.
 #' @return The returned value is an object of the class \code{"mboot"} containing the following components:
 #' \itemize{
@@ -23,7 +23,9 @@
 #'
 #' @details
 #'
-#' \code{m} needs to be a numeric value meeting the condition \code{2<=m<=n}. If omitted, \code{m} is set to \code{sqrt(n)}.
+#' \code{m} needs to be a numeric value meeting the condition \code{2<=m<=n}.
+#' It must be chosen such that m goes to infinity as n goes to infinits,
+#' but the ratio m/n must go to zero.
 #' The m-out-of-n Bootstrap without replacement, known as subsampling, was introduced by Politis and Romano (1994).
 #' @importFrom methods hasArg
 #' @export
@@ -35,7 +37,7 @@
 #' @seealso mboot.ci estimate.m estimate.tau
 #'
 #' @references Politis D.N. and Romano J.P. (1994) Large sample confidence regions
-#' based on subsamples under minimal assumptions \emph{The Annals of Statistics}, 22(4):2031-2050, doi:10.1214/aos/1176325770.
+#' based on subsamples under minimal assumptions. \emph{The Annals of Statistics}, 22(4):2031-2050, \doi{10.1214/aos/1176325770}
 #' @keywords ~htest ~nonparametric
 mboot <- function(data, statistic, m, R = 1000, replace = FALSE, ...) {
   n <- NROW(data)
@@ -65,28 +67,42 @@ mboot <- function(data, statistic, m, R = 1000, replace = FALSE, ...) {
 #' m-Out-of-n Bootstrap Confidence Intervals
 #'
 #' Estimates the confidence interval using the methods provided by \code{types}.
-#' \code{tau} must be a function that calculates \code{tau.n} from its argument \code{n}.
-#' If it is not provided, it is estimated with \code{estimate.tau} using the default settings of this function.
+#' \code{tau} must be a function that calculates teh scaling factor
+#' tau(n) for a given n. If \code{tau} is not provided, it is estimated
+#' with \code{estimate.tau} using the default settings of this function.
 #'
 #' @param boot.out The simulated bootstrap distribution from the \code{mboot} call.
 #' @param conf The confidence level.
-#' @param tau Function that returns its only argument applied to tau. If \code{NULL}, \code{estimate.tau} is used to estimate \code{tau}.
+#' @param tau Function that returns the scaling factor tau in dependence of n. If \code{NULL}, \code{estimate.tau} is used to estimate \code{tau}.
 #' @param types The types of confidence intervals to be calculated. The value can be 'all' for all types, or a
 #' subset of \code{c("basic", "norm", "sherman")}.
-#' @param ... When \code{tau} is omitted, the additional parameters are passed to \code{statistic} when estimating \code{tau}.
+#' @param ... When \code{tau} is omitted, the additional parameters are passed to \code{statistic} during estimation of \code{tau}.
 #'
 #' @returns A list of confidence intervals for the given types.
 #'
 #'
 #' @details
-#' The additional parameters are passed to the statistic function if \code{tau} was omitted.
-#' To specify the arguments of the \code{estimate.tau}, call this function directly and use its return value as \code{tau} argument.
-#' For the type \code{sherman}, \code{tau} is not needed and is therefore not calculated.
+#' As estimating the scaling factor tau(n) can be unreliable, it is recommended
+#' to explicitly provide \code{tau}. Otherwise it is estimated with
+#' \code{estimate.tau}. To specify additional arguments for
+#' \code{estimate.tau}, call this function directly and use its return value
+#' as \code{tau} argument. For the type \code{sherman}, \code{tau} is not
+#' needed and its value is ignored.
+#' 
+#' The following methods to compute teh confidence intervals are supported
+#' through the parameter \code{type}:
+#' 
+#' \describe{\item{basic:}{
+#' This method works for all estimators and computes the interval directly from the quantiles of the m-out-of-n bootstrap distribution.}
+#' \item{norm:}{
+#' This method only works for normally distributed estimators. It estimates the variance with the m-out-of-n bootstrap and then computes te interval with the quantiles of teh standard normal distribution.}
+#' \item{sherman:}{
+#' This method does not scale the interval with tau(m)/tau(n) and thus is too wide. To avoid over-coverage, this is compensated by centering it randomly around the point estimators of one of the m-out-of-n bootstrap samples. Although this results on average in the nominal coverage probability, the interval is less accurate than the other intervals and should be used only as a last resort if the scaling factor tau is neither known, nor estimatable.}}
 #'
 #' @examples
 #' data <- runif(1000)
 #' estimate.max <- function(data, indices) {return(max(data[indices]))}
-#' tau <- \(x){x} # convergence rate
+#' tau <- function(n){n} # convergence rate (usually sqrt(n), but n for max) 
 #' boot.out <- mboot(data, estimate.max, R = 1000, m = 2*sqrt(NROW(data)), replace = FALSE)
 #' cis <- mboot.ci(boot.out, 0.95, tau, c("all"))
 #' ci.basic <- cis$basic
@@ -100,9 +116,10 @@ mboot <- function(data, statistic, m, R = 1000, replace = FALSE, ...) {
 #' @seealso mboot estimate.tau
 #'
 #' @references Politis D.N. and Romano J.P. (1994) Large sample confidence regions
-#' based on subsamples under minimal assumptions \emph{The Annals of Statistics}, 22(4):2031-2050, doi:10.1214/aos/1176325770.
+#' based on subsamples under minimal assumptions. \emph{The Annals of Statistics}, 22(4):2031-2050, \doi{10.1214/aos/1176325770}
 #' @references Sherman M. and Carlstein E. (2004) Confidence intervals based on estimators with unknown rates of convergence.
 #' \emph{Computional statistics & data analysis}, 46(1):123-136.
+#' @references Dalitz C. and Lögler M. (2024) moonboot: An R Package Implementing m-out-of-n Bootstrap Methods \doi{10.48550/arXiv.2412.05032}
 #' @keywords ~htest
 #' @export
 mboot.ci <- function(boot.out, conf = 0.95, tau = NULL, types = "all", ...) {
@@ -163,7 +180,7 @@ mboot.ci <- function(boot.out, conf = 0.95, tau = NULL, types = "all", ...) {
 #' @param tau The convergence rate.
 #' @param R The amount of bootstrap replicates. Must be a positive integer.
 #' @param method The method to be used, one of \code{c("goetze","bickel","politis", "sherman")}.
-#' @param replace If the sampling should be done with replacement.
+#' @param replace If the sampling should be done with replacement. Setting this value to true requires a sufficient smooth estimator.
 #' @param min.m Minimum subsample size to be tried. Should be the minimum size for which the statistic make sense.
 #' @param params Additional parameters to be passed to the internal functions, see details for more information.
 #' @param ... Additional parameters to be passed to the statistic.
@@ -186,7 +203,7 @@ mboot.ci <- function(boot.out, conf = 0.95, tau = NULL, types = "all", ...) {
 #' As distance measurement the 'Kolmogorov distance' is used.
 #' The method uses the pairs 'm' and 'm/2' to be minimized.
 #' As this would involve trying out all combinations of 'm' and 'm/2' this method has a running time of order Rn^2.
-#' To reduce the runtime in practical use, \code{params} can be used to pass a \code{search.value}, which is a
+#' To reduce the runtime in practical use, \code{params} can be used to pass a \code{goetze.interval}, which is a
 #' list of the smallest and largest value for m to try.}
 #' \item{bickel:}{
 #' This method works similary to the previous one. The difference here is that the subsample sizes to be
@@ -214,7 +231,7 @@ mboot.ci <- function(boot.out, conf = 0.95, tau = NULL, types = "all", ...) {
 #' @examples
 #' data <- runif(1000)
 #' estimate.max <- function(data, indices) {return(max(data[indices]))}
-#' tau <- \(x){x} # convergence rate
+#' tau <- function(n){n} # convergence rate (usually sqrt(n), but n for max) 
 #' choosen.m <- estimate.m(data, estimate.max, tau, R = 1000, method = "bickel")
 #' print(choosen.m)
 #'
@@ -255,7 +272,7 @@ estimate.m <- function(data, statistic, tau = NULL, R = 1000, replace = FALSE, m
 
 estimate.m.goetze <- function(data, statistic, tau, R, replace = FALSE, min.m, params, ...) {
   n <- NROW(data)
-  params.default.values <- list(goetze.interval = c(2, n))
+  params.default.values <- list(goetze.interval = c(4, n))
 
   if (!hasArg(params) || is.null(params)) {
     params <- params.default.values
@@ -274,13 +291,12 @@ estimate.m.goetze <- function(data, statistic, tau, R, replace = FALSE, min.m, p
   t0 <- statistic(data, 1:n, ...)
 
   # Calculate the distance between m and m/2
-  calcDistance <- function(m) {
-    m.half <- ceiling(m / 2)
+  calcDistance <- function(bout.m, bout.mh) {
+    m <- bout.m$m
+    m.half <- bout.mh$m
 
-    bout <- mboot(data, statistic, R, m = m, replace = replace, ...)
-    m.t <- bout$t
-    bout.m.half <- mboot(data, statistic, R, m = m.half, replace = replace, ...)
-    mh.t <- bout.m.half$t
+    m.t <- bout.m$t
+    mh.t <- bout.mh$t
 
     m.t <- tau(m) * (m.t - t0)
     mh.t <- tau(m.half) * (mh.t - t0)
@@ -292,13 +308,20 @@ estimate.m.goetze <- function(data, statistic, tau, R, replace = FALSE, min.m, p
   }
 
   # using an (optional) search interval to speed up the process
-  a <- max(min.m + min.m %% 2, goetze.interval[1]) # limiting search interval to min.m
-  b <- min(n / 2, goetze.interval[2])
+  a <- max(2 * min.m, goetze.interval[1] + goetze.interval[1] %% 2) # limiting search interval to min.m
+  b <- min(n, goetze.interval[2])
   # filtering m values which are not in the search interval
-  m.values <- 2 * seq(a - (a %% 2), b + (a %% 2), by = 2)
-  m.values <- m.values[m.values >= min.m]
+  m.values <- seq(a, b, by = 2)
+  m.values <- m.values[m.values >= 2 * min.m] # it is needed to calculate m/2, therefore m needs to be at least 2*min.m
   m.values <- m.values[m.values <= n]
-  distances <- sapply(m.values, calcDistance)
+  required.m.values <- unique(c(m.values, ceiling(m.values / 2)))
+  required.m.values <- sort(required.m.values)
+  required.boots <- lapply(required.m.values, function(m)
+    mboot(data, statistic, R, m = m, replace = replace, ...))
+  # iterate over m.values and calculate distances between corresponding required.boots m and m/2.
+  distances <- sapply(m.values, function(m)
+    calcDistance(required.boots[[which(required.m.values == m)]], required.boots[[which(required.m.values == ceiling(m / 2))]]))
+
   m <- m.values[which.min(distances)]
   return(m)
 }
@@ -461,8 +484,8 @@ estimate.m.politis <- function(data, statistic, tau, R, replace = FALSE, min.m, 
 #' @references Politis D.N. et al. (1999)
 #' \emph{Subsampling}, Springer, New York.
 #' @references Dalitz, C, and Lögler, F. (2024)
-#' \emph{moonboot: An R Package Implementing m-out-of-n Bootstrap Methods},
-#' <doi:10.48550/arXiv.2412.05032>
+#' \emph{moonboot: An R Package Implementing m-out-of-n Bootstrap Methods}.
+#' \doi{10.48550/arXiv.2412.05032}
 #'
 #' @importFrom stats lm
 #' @importFrom stats coef

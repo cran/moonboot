@@ -13,7 +13,7 @@ Usage
 A typical usage is
 
     # application of estimator to the subset indices
-    boot.stat <- function(indices, dat) {
+    boot.stat <- function(dat, indices) {
       my.stat(dat[indices])
     }
 
@@ -43,6 +43,20 @@ If you have downloaded a file release *moonboot-X.Y.Z.tar.gz*, you can install
 it with
 
     R CMD INSTALL moonboot-X.Y.Z.tar.gz
+
+If you want to remove the already installed package, you can uninstall it with
+
+    R CMD REMOVE moonboot
+
+
+Reference
+---------
+
+For details about the implemented methods and a comparative evaluation, see
+
+> Dalitz C. and Lögler M. (2024):
+> "moonboot: An R Package Implementing m-out-of-n Bootstrap Methods."
+> https://doi.org/10.48550/arXiv.2412.05032
 
 
 Authors & Copyright
